@@ -1,0 +1,59 @@
+name: gymio
+description: "Gymio - Your Fitness. Your Community. Your Marketplace."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Storage
+  shared_preferences: ^2.3.5
+
+  # UI
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.10+1
+  lottie: ^3.3.1
+  shimmer: ^3.0.0
+  smooth_page_indicator: ^1.2.0+3
+  carousel_slider: ^5.0.0
+  badges: ^3.1.2
+  flutter_rating_bar: ^4.0.1
+
+  # Animations
+  animate_do: ^3.3.4
+
+  # Utils
+  intl: ^0.20.1
+  uuid: ^4.5.1
+  gap: ^3.0.1
+  percent_indicator: ^4.2.3
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  riverpod_generator: ^2.6.2
+  build_runner: ^2.4.14
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+
