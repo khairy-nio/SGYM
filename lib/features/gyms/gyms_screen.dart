@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/providers.dart';
 import '../../models/models.dart';
-import '../../shared/widgets/shared_widgets.dart';
+import '../../data/mock/mock_gyms.dart';
+import 'widgets/gym_card.dart';
+import 'widgets/gym_map_view.dart';
+import 'widgets/filter_bottom_sheet.dart';
 
 class GymsScreen extends ConsumerStatefulWidget {
   const GymsScreen({super.key});
@@ -15,214 +17,189 @@ class GymsScreen extends ConsumerStatefulWidget {
 }
 
 class _GymsScreenState extends ConsumerState<GymsScreen> {
-  String _selectedCity = 'All';
+  String _selectedArea = 'All Areas';
   String _sortBy = 'distance';
-
-  final List<String> _cities = ['All', 'Nasr City', 'Heliopolis', 'New Cairo', 'Maadi', '6th of October'];
+  bool _isMapView = false;
+  GymFilterOptions _filters = GymFilterOptions();
 
   @override
   Widget build(BuildContext context) {
     final gyms = ref.watch(gymsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    List<GymModel> filtered = _selectedCity == 'All'
-        ? gyms
-        : gyms.where((g) => g.city == _selectedCity).toList();
+    List<GymModel> filtered = _selectedArea == 'All Areas'
+        ? List.from(gyms)
+        : gyms.where((g) => g.area == _selectedArea).toList();
+
+    if (_filters.openNowOnly) {
+      filtered = filtered.where((g) => g.isOpen).toList();
+    }
+    if (_filters.maxPrice < 2500.0) {
+      filtered = filtered.where((g) => g.startingPrice <= _filters.maxPrice).toList();
+    }
+    if (_filters.minRating > 0.0) {
+      filtered = filtered.where((g) => g.rating >= _filters.minRating).toList();
+    }
+    if (_filters.gender != 'All') {
+      filtered = filtered.where((g) => g.gender == _filters.gender).toList();
+    }
 
     if (_sortBy == 'distance') {
       filtered.sort((a, b) => a.distance.compareTo(b.distance));
     } else if (_sortBy == 'rating') {
       filtered.sort((a, b) => b.rating.compareTo(a.rating));
+    } else if (_sortBy == 'price') {
+      filtered.sort((a, b) => a.startingPrice.compareTo(b.startingPrice));
     }
 
     return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          SliverAppBar(
-            title: const Text('Explore Gyms'),
-            pinned: true,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(110),
-              child: Container(
-                color: isDark ? AppColors.surfaceDark : Colors.white,
-                child: Column(
-                  children: [
-                    // Filter chips
-                    SizedBox(
-                      height: 48,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemCount: _cities.length,
-                        itemBuilder: (_, i) {
-                          final city = _cities[i];
-                          final isSelected = _selectedCity == city;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedCity = city),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primary : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.primary : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                city,
-                                style: AppTextStyles.labelMedium.copyWith(
-                                  color: isSelected ? Colors.white : AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+      appBar: AppBar(
+        title: const Text('Explore Gyms'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isMapView ? Icons.view_agenda_rounded : Icons.map_rounded,
+              color: AppColors.primary,
+            ),
+            tooltip: _isMapView ? 'Show List' : 'Show Map',
+            onPressed: () => setState(() => _isMapView = !_isMapView),
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () async {
+              final result = await FilterBottomSheet.show(context, _filters);
+              if (result != null) {
+                setState(() => _filters = result);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Horizontal Area Selector Pills
+          Container(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemCount: MockGyms.popularAreas.length,
+                itemBuilder: (_, i) {
+                  final area = MockGyms.popularAreas[i];
+                  final isSelected = _selectedArea == area;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedArea = area),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : AppColors.border,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          area,
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                    // Sort row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                      child: Row(
-                        children: [
-                          Text(
-                            '${filtered.length} gyms found',
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                          ),
-                          const Spacer(),
-                          Text('Sort: ', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-                          GestureDetector(
-                            onTap: () => setState(() => _sortBy = _sortBy == 'distance' ? 'rating' : 'distance'),
-                            child: Text(
-                              _sortBy == 'distance' ? 'Distance' : 'Rating',
-                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
-        ],
-        body: filtered.isEmpty
-            ? const EmptyState(
-                icon: Icons.location_off_outlined,
-                title: 'No Gyms Found',
-                message: 'Try selecting a different city',
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemCount: filtered.length,
-                itemBuilder: (_, i) => GymListCard(gym: filtered[i]),
-              ),
-      ),
-    );
-  }
-}
 
-// ── GYM LIST CARD ──────────────────────────────────────────────────────────
-
-class GymListCard extends ConsumerWidget {
-  final GymModel gym;
-  const GymListCard({super.key, required this.gym});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: () => context.push('/gym/${gym.id}'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-              child: AppNetworkImage(url: gym.imageUrl, width: 110, height: 110),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(gym.name, style: AppTextStyles.titleMedium,
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: gym.isOpen ? AppColors.success.withOpacity(0.12) : AppColors.error.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            gym.isOpen ? 'Open' : 'Closed',
-                            style: AppTextStyles.labelSmall.copyWith(
-                              color: gym.isOpen ? AppColors.success : AppColors.error,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textTertiary),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(gym.address, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        RatingWidget(rating: gym.rating, reviewCount: gym.reviewCount, size: 13),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(Icons.directions_walk_rounded, size: 13, color: AppColors.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${gym.distance} km away',
-                          style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary),
-                        ),
-                        const Spacer(),
-                        FavoriteButton(
-                          isFavorite: gym.isFavorite,
-                          size: 30,
-                          onTap: () => ref.read(gymsProvider.notifier).toggleFavorite(gym.id),
-                        ),
-                      ],
-                    ),
-                  ],
+          // Count & Sort row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: Row(
+              children: [
+                Text(
+                  '${filtered.length} gyms available',
+                  style: AppTextStyles.labelMedium.copyWith(color: AppColors.textSecondary),
                 ),
-              ),
+                const Spacer(),
+                Text('Sort: ', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_sortBy == 'distance') {
+                        _sortBy = 'rating';
+                      } else if (_sortBy == 'rating') {
+                        _sortBy = 'price';
+                      } else {
+                        _sortBy = 'distance';
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _sortBy == 'distance'
+                          ? 'Distance ▾'
+                          : (_sortBy == 'rating' ? 'Rating ▾' : 'Price ▾'),
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Main View (Map or List)
+          Expanded(
+            child: _isMapView
+                ? GymMapView(
+                    gyms: filtered,
+                    currentArea: _selectedArea,
+                  )
+                : (filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_off_rounded, size: 48, color: AppColors.textSecondary),
+                            const SizedBox(height: 12),
+                            Text('No gyms found in $_selectedArea', style: AppTextStyles.titleMedium),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => setState(() => _selectedArea = 'All Areas'),
+                              child: const Text('View All Areas'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        itemCount: filtered.length,
+                        itemBuilder: (_, i) => GymCard(
+                          gym: filtered[i],
+                          onFavoriteToggle: () {
+                            ref.read(gymsProvider.notifier).toggleFavorite(filtered[i].id);
+                          },
+                        ),
+                      )),
+          ),
+        ],
       ),
     );
   }

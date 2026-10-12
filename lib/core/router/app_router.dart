@@ -91,6 +91,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => GymDetailScreen(gymId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/gyms/:id',
+        builder: (_, state) => GymDetailScreen(gymId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/product/:id',
         builder: (_, state) => ProductDetailScreen(productId: state.pathParameters['id']!),
       ),

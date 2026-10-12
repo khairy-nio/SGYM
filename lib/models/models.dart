@@ -1,3 +1,25 @@
+class MembershipPlanModel {
+  final String id;
+  final String name;
+  final String duration;
+  final double price;
+  final double? originalPrice;
+  final String? badge;
+  final List<String> features;
+  final bool isPopular;
+
+  const MembershipPlanModel({
+    required this.id,
+    required this.name,
+    required this.duration,
+    required this.price,
+    this.originalPrice,
+    this.badge,
+    this.features = const [],
+    this.isPopular = false,
+  });
+}
+
 class GymModel {
   final String id;
   final String name;
@@ -15,6 +37,13 @@ class GymModel {
   final String phone;
   final String about;
   final List<String> facilities;
+  final List<String> services;
+  final double startingPrice;
+  final List<MembershipPlanModel> plans;
+  final Map<String, String> weeklySchedule;
+  final String gymType;
+  final String gender;
+  final bool is24Hours;
   final List<String> photos;
   final double lat;
   final double lng;
@@ -37,11 +66,20 @@ class GymModel {
     required this.phone,
     required this.about,
     required this.facilities,
+    this.services = const ['Weight Training', 'Cardio', 'Personal Training'],
+    this.startingPrice = 800.0,
+    this.plans = const [],
+    this.weeklySchedule = const {},
+    this.gymType = 'Fitness & Strength',
+    this.gender = 'Mixed',
+    this.is24Hours = false,
     required this.photos,
     required this.lat,
     required this.lng,
     this.isFavorite = false,
   });
+
+  String get area => city;
 
   GymModel copyWith({
     bool? isFavorite,
@@ -64,6 +102,13 @@ class GymModel {
       phone: phone,
       about: about,
       facilities: facilities,
+      services: services,
+      startingPrice: startingPrice,
+      plans: plans,
+      weeklySchedule: weeklySchedule,
+      gymType: gymType,
+      gender: gender,
+      is24Hours: is24Hours,
       photos: photos,
       lat: lat,
       lng: lng,

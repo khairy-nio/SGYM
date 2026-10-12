@@ -1,698 +1,678 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/providers/providers.dart';
 import '../../models/models.dart';
-import '../../shared/widgets/shared_widgets.dart';
+import '../gyms/widgets/gym_card.dart';
+import '../gyms/widgets/gym_map_view.dart';
+import '../gyms/widgets/filter_bottom_sheet.dart';
+import '../gyms/widgets/area_selector_sheet.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider);
-    final location = ref.watch(locationProvider);
-    final gyms = ref.watch(gymsProvider);
-    final products = ref.watch(productsProvider);
-    final banners = ref.watch(bannersProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // Header
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceDark : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$greeting, ${user?.name ?? 'User'} 👋',
-                                  style: AppTextStyles.headlineMedium,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                GestureDetector(
-                                  onTap: () => context.push('/location'),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.location_on_rounded,
-                                          size: 14, color: AppColors.primary),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$location, Egypt',
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.keyboard_arrow_down_rounded,
-                                          size: 14, color: AppColors.primary),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => context.push('/profile'),
-                            child: CircleAvatar(
-                              radius: 22,
-                              backgroundImage: NetworkImage(
-                                user?.avatarUrl ?? AppConstants.mockUserAvatar,
-                              ),
-                              onBackgroundImageError: (_, __) {},
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Search bar
-                      GestureDetector(
-                        onTap: () => context.push('/search'),
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isDark ? AppColors.borderDark : AppColors.border,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 14),
-                              Icon(Icons.search_rounded,
-                                  color: AppColors.textTertiary, size: 20),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Search gyms, products...',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.textTertiary,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                margin: const EdgeInsets.all(6),
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.tune_rounded,
-                                    color: Colors.white, size: 16),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Hero Section
-          SliverToBoxAdapter(
-            child: _buildHeroSection(context),
-          ),
-
-          // Promotional Carousel
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 8),
-              child: _PromoCarousel(banners: banners),
-            ),
-          ),
-
-          // Categories
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                const SectionHeader(title: 'Categories', actionLabel: 'See All'),
-                const SizedBox(height: 16),
-                _CategoriesRow(),
-              ],
-            ),
-          ),
-
-          // Nearby Gyms
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 24),
-                SectionHeader(
-                  title: 'Nearby Gyms',
-                  actionLabel: 'See All',
-                  onActionTap: () => context.go('/explore'),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 240,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    separatorBuilder: (_, __) => const SizedBox(width: 16),
-                    itemCount: gyms.length > 6 ? 6 : gyms.length,
-                    itemBuilder: (_, i) => _GymCard(gym: gyms[i]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Featured Products
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 24),
-                SectionHeader(
-                  title: 'Featured Products',
-                  actionLabel: 'See All',
-                  onActionTap: () => context.push('/products'),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-
-          // Products Grid
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) => _ProductCard(product: products[i]),
-                childCount: products.length > 6 ? 6 : products.length,
-              ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.72,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeroSection(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomRight: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-              child: Image.network(
-                'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
-                height: 180,
-                width: 170,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox(),
-              ),
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF0D0D2B),
-                  const Color(0xFF0D0D2B).withOpacity(0.3),
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '🔥 TRENDING',
-                    style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Find your fitness\ncommunity',
-                  style: AppTextStyles.headlineLarge.copyWith(
-                    color: Colors.white,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                GestureDetector(
-                  onTap: () => context.go('/explore'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Explore Gyms →',
-                      style: AppTextStyles.labelMedium.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-// ── PROMO CAROUSEL ─────────────────────────────────────────────────────────
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isMapView = false;
+  String _activeQuickFilter = 'All';
 
-class _PromoCarousel extends StatefulWidget {
-  final List<BannerModel> banners;
-  const _PromoCarousel({required this.banners});
+  GymFilterOptions _filters = GymFilterOptions();
 
-  @override
-  State<_PromoCarousel> createState() => _PromoCarouselState();
-}
-
-class _PromoCarouselState extends State<_PromoCarousel> {
-  int _current = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CarouselSlider(
-          options: CarouselOptions(
-            height: 160,
-            autoPlay: true,
-            autoPlayInterval: const Duration(seconds: 4),
-            enlargeCenterPage: true,
-            onPageChanged: (i, _) => setState(() => _current = i),
-            viewportFraction: 0.85,
-          ),
-          items: widget.banners.map((b) {
-            final color = Color(int.parse('FF${b.color}', radix: 16));
-            return Builder(
-              builder: (_) => Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: color,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(
-                      b.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: color),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [color.withOpacity(0.85), Colors.transparent],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(b.tag,
-                                style: AppTextStyles.labelSmall.copyWith(color: Colors.white)),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(b.title,
-                              style: AppTextStyles.headlineSmall.copyWith(color: Colors.white)),
-                          const SizedBox(height: 4),
-                          Text(b.subtitle,
-                              style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
-                              maxLines: 2),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(widget.banners.length, (i) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _current == i ? 20 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: _current == i ? AppColors.primary : AppColors.border,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-}
-
-// ── CATEGORIES ROW ─────────────────────────────────────────────────────────
-
-class _CategoriesRow extends StatelessWidget {
-  final List<Map<String, dynamic>> _cats = const [
-    {'emoji': '🏋️', 'name': 'Gyms', 'color': 0xFF6C63FF},
-    {'emoji': '💊', 'name': 'Supplements', 'color': 0xFF00C896},
-    {'emoji': '🥛', 'name': 'Protein', 'color': 0xFFFF6B35},
-    {'emoji': '👕', 'name': 'Clothing', 'color': 0xFFFFB800},
-    {'emoji': '🥊', 'name': 'Accessories', 'color': 0xFF3B82F6},
-    {'emoji': '🏷️', 'name': 'Offers', 'color': 0xFFEA4335},
+  final List<String> _quickFilterTags = const [
+    'All',
+    'Open Now 🟢',
+    'Under EGP 1000',
+    'Rating 4.5+ ★',
+    'Open 24/7',
+    'Swimming Pool',
+    'CrossFit',
+    'Ladies Only',
   ];
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<GymModel> _filterAndSortGyms(List<GymModel> allGyms, String selectedArea) {
+    List<GymModel> list = List.from(allGyms);
+
+    // 1. Area filter (if not "All Areas")
+    if (selectedArea != 'All Areas') {
+      list = list.where((g) => g.area.toLowerCase() == selectedArea.toLowerCase()).toList();
+    }
+
+    // 2. Search query filter (matches name, type, services, facilities, area)
+    if (_searchQuery.trim().isNotEmpty) {
+      final query = _searchQuery.toLowerCase().trim();
+      list = list.where((g) {
+        final matchesName = g.name.toLowerCase().contains(query);
+        final matchesType = g.gymType.toLowerCase().contains(query);
+        final matchesArea = g.area.toLowerCase().contains(query);
+        final matchesService = g.services.any((s) => s.toLowerCase().contains(query));
+        final matchesFacility = g.facilities.any((f) => f.toLowerCase().contains(query));
+        final matchesGender = g.gender.toLowerCase().contains(query);
+        final matches24h = query.contains('24') && g.is24Hours;
+
+        return matchesName ||
+            matchesType ||
+            matchesArea ||
+            matchesService ||
+            matchesFacility ||
+            matchesGender ||
+            matches24h;
+      }).toList();
+    }
+
+    // 3. Quick Filter Pill
+    switch (_activeQuickFilter) {
+      case 'Open Now 🟢':
+        list = list.where((g) => g.isOpen).toList();
+        break;
+      case 'Under EGP 1000':
+        list = list.where((g) => g.startingPrice <= 1000).toList();
+        break;
+      case 'Rating 4.5+ ★':
+        list = list.where((g) => g.rating >= 4.5).toList();
+        break;
+      case 'Open 24/7':
+        list = list.where((g) => g.is24Hours).toList();
+        break;
+      case 'Swimming Pool':
+        list = list.where((g) => g.facilities.any((f) => f.toLowerCase().contains('pool'))).toList();
+        break;
+      case 'CrossFit':
+        list = list.where((g) => g.services.any((s) => s.toLowerCase().contains('crossfit'))).toList();
+        break;
+      case 'Ladies Only':
+        list = list.where((g) => g.gender == 'Ladies Only').toList();
+        break;
+    }
+
+    // 4. Advanced Filter Criteria
+    if (_filters.openNowOnly) {
+      list = list.where((g) => g.isOpen).toList();
+    }
+    if (_filters.maxPrice < 2500.0) {
+      list = list.where((g) => g.startingPrice <= _filters.maxPrice).toList();
+    }
+    if (_filters.minRating > 0.0) {
+      list = list.where((g) => g.rating >= _filters.minRating).toList();
+    }
+    if (_filters.gender != 'All') {
+      list = list.where((g) => g.gender == _filters.gender).toList();
+    }
+    if (_filters.selectedServices.isNotEmpty) {
+      list = list.where((g) {
+        return _filters.selectedServices.any((service) => g.services.contains(service));
+      }).toList();
+    }
+    if (_filters.selectedFacilities.isNotEmpty) {
+      list = list.where((g) {
+        return _filters.selectedFacilities.any((facility) => g.facilities.contains(facility));
+      }).toList();
+    }
+
+    // 5. Sorting
+    switch (_filters.sortBy) {
+      case 'rating':
+        list.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      case 'price_asc':
+        list.sort((a, b) => a.startingPrice.compareTo(b.startingPrice));
+        break;
+      case 'price_desc':
+        list.sort((a, b) => b.startingPrice.compareTo(a.startingPrice));
+        break;
+      case 'distance':
+      default:
+        list.sort((a, b) => a.distance.compareTo(b.distance));
+        break;
+    }
+
+    return list;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 90,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemCount: _cats.length,
-        itemBuilder: (ctx, i) {
-          final cat = _cats[i];
-          final color = Color(cat['color'] as int);
-          return GestureDetector(
-            onTap: () {
-              if (cat['name'] == 'Gyms') ctx.go('/explore');
-              else if (cat['name'] == 'Offers') ctx.go('/offers');
-              else ctx.push('/products');
-            },
-            child: Column(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(cat['emoji'] as String,
-                        style: const TextStyle(fontSize: 26)),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  cat['name'] as String,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ── GYM CARD ───────────────────────────────────────────────────────────────
-
-class _GymCard extends ConsumerWidget {
-  final GymModel gym;
-  const _GymCard({required this.gym});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+    final currentArea = ref.watch(locationProvider);
+    final allGyms = ref.watch(gymsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: () => context.push('/gym/${gym.id}'),
-      child: Container(
-        width: 200,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+
+    final filteredGyms = _filterAndSortGyms(allGyms, currentArea);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: AppNetworkImage(
-                    url: gym.imageUrl,
-                    width: 200,
-                    height: 130,
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: FavoriteButton(
-                    isFavorite: gym.isFavorite,
-                    onTap: () => ref.read(gymsProvider.notifier).toggleFavorite(gym.id),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: gym.isOpen ? AppColors.success : AppColors.error,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      gym.isOpen ? 'Open' : 'Closed',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Colors.white,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(gym.name, style: AppTextStyles.titleSmall, maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 12, color: AppColors.textTertiary),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          gym.city,
-                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      RatingWidget(rating: gym.rating, reviewCount: gym.reviewCount, size: 13),
-                      const Spacer(),
-                      Text(
-                        '${gym.distance} km',
-                        style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+            // ── TOP HEADER SECTION ─────────────────────────────────────────────
+            _buildTopHeader(context, currentArea, isDark),
 
-// ── PRODUCT CARD ───────────────────────────────────────────────────────────
+            // ── PROMINENT SEARCH BAR ───────────────────────────────────────────
+            _buildSearchBar(context, isDark),
 
-class _ProductCard extends ConsumerWidget {
-  final ProductModel product;
-  const _ProductCard({required this.product});
+            // ── HORIZONTAL QUICK FILTERS & ADVANCED BUTTON ─────────────────────
+            _buildFiltersRow(context, isDark),
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cart = ref.watch(cartProvider.notifier);
-    final inCart = cart.isInCart(product.id);
+            // ── DISCOVERY CONTROLS ROW: RESULTS COUNT & LIST/MAP TOGGLE ────────
+            _buildDiscoveryControls(context, filteredGyms.length, currentArea, isDark),
 
-    return GestureDetector(
-      onTap: () => context.push('/product/${product.id}'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: AppNetworkImage(
-                    url: product.imageUrl,
-                    height: 140,
-                    width: double.infinity,
-                  ),
-                ),
-                if (product.hasDiscount)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: DiscountBadge(percent: product.discountPercent!),
-                  ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: FavoriteButton(
-                    isFavorite: product.isFavorite,
-                    size: 32,
-                    onTap: () => ref.read(productsProvider.notifier).toggleFavorite(product.id),
-                  ),
-                ),
-              ],
-            ),
+            // ── CONTENT BODY (LIST VIEW OR MAP VIEW) ───────────────────────────
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(product.name, style: AppTextStyles.titleSmall,
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 2),
-                    Text(product.gymName,
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const Spacer(),
-                    PriceWidget(
-                      price: product.finalPrice,
-                      originalPrice: product.hasDiscount ? product.price : null,
-                      fontSize: 14,
+              child: _isMapView
+                  ? GymMapView(
+                      gyms: filteredGyms,
+                      currentArea: currentArea,
+                    )
+                  : (filteredGyms.isEmpty
+                      ? _buildEmptyState(context, currentArea, isDark)
+                      : _buildGymsList(context, filteredGyms)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── HEADER: SGYM LOGO, AREA SELECTOR & NOTIFICATIONS ───────────────────────
+  Widget _buildTopHeader(BuildContext context, String currentArea, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+      child: Row(
+        children: [
+          // SGYM Brand Logo
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6C5CE7), AppColors.primary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        ref.read(cartProvider.notifier).addItem(product);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${product.name} added to cart'),
-                            duration: const Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: inCart ? AppColors.secondary : AppColors.primary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Center(
-                          child: Text(
-                            inCart ? '✓ In Cart' : '+ Add',
-                            style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
-                          ),
-                        ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.fitness_center_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 8),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'S',
+                      style: AppTextStyles.displaySmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                      ),
+                    ),
+                    TextSpan(
+                      text: 'GYM',
+                      style: AppTextStyles.displaySmall.copyWith(
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+
+          const Spacer(),
+
+          // Area / Location Selector Button
+          GestureDetector(
+            onTap: () async {
+              final newArea = await AreaSelectorSheet.show(context, currentArea);
+              if (newArea != null && newArea.isNotEmpty) {
+                ref.read(locationProvider.notifier).state = newArea;
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceVariantDark : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : AppColors.border,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_rounded, size: 14, color: AppColors.primary),
+                  const SizedBox(width: 5),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: Text(
+                      currentArea,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.primary),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // Notification Icon
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceVariantDark : const Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.border,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
+                  size: 20,
+                  color: isDark ? Colors.white70 : AppColors.textPrimary,
+                ),
+                Positioned(
+                  top: 9,
+                  right: 9,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── SEARCH BAR ─────────────────────────────────────────────────────────────
+  Widget _buildSearchBar(BuildContext context, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: (val) => setState(() => _searchQuery = val),
+          decoration: InputDecoration(
+            hintText: 'Search gyms, services, facilities...',
+            hintStyle: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textSecondary.withOpacity(0.7),
+            ),
+            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 18),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                : null,
+            filled: false,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── HORIZONTAL FILTERS & ADVANCED BUTTON ───────────────────────────────────
+  Widget _buildFiltersRow(BuildContext context, bool isDark) {
+    final activeCount = _filters.activeFiltersCount;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: SizedBox(
+        height: 40,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          children: [
+            // Advanced Filter Modal Button
+            GestureDetector(
+              onTap: () async {
+                final applied = await FilterBottomSheet.show(context, _filters);
+                if (applied != null) {
+                  setState(() => _filters = applied);
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: activeCount > 0
+                      ? AppColors.primary
+                      : (isDark ? AppColors.surfaceVariantDark : const Color(0xFFF1F5F9)),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: activeCount > 0 ? AppColors.primary : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      size: 15,
+                      color: activeCount > 0 ? Colors.white : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      activeCount > 0 ? 'Filters ($activeCount)' : 'Filters',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: activeCount > 0 ? Colors.white : AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Quick Filter Pills
+            ..._quickFilterTags.map((tag) {
+              final isSelected = _activeQuickFilter == tag;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _activeQuickFilter = isSelected ? 'All' : tag;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : (isDark ? AppColors.surfaceDark : Colors.white),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : (isDark ? AppColors.borderDark : AppColors.border),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        tag,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── DISCOVERY CONTROLS ROW: RESULTS COUNT & [LIST] [MAP] TOGGLE ────────────
+  Widget _buildDiscoveryControls(
+    BuildContext context,
+    int count,
+    String area,
+    bool isDark,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Results Count & Area Label
+          Row(
+            children: [
+              Text(
+                '$count Gyms',
+                style: AppTextStyles.titleMedium.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'in $area',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+
+          // Segmented [ List ] [ Map ] Toggle
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceVariantDark : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.border,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildToggleItem(
+                  title: 'List',
+                  icon: Icons.view_agenda_rounded,
+                  isActive: !_isMapView,
+                  onTap: () => setState(() => _isMapView = false),
+                  isDark: isDark,
+                ),
+                _buildToggleItem(
+                  title: 'Map',
+                  icon: Icons.map_rounded,
+                  isActive: _isMapView,
+                  onTap: () => setState(() => _isMapView = true),
+                  isDark: isDark,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToggleItem({
+    required String title,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive
+              ? (isDark ? AppColors.surfaceDark : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(11),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isActive ? AppColors.primary : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              title,
+              style: AppTextStyles.labelSmall.copyWith(
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                color: isActive
+                    ? (isDark ? Colors.white : AppColors.textPrimary)
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── GYMS COMPARISON LIST ───────────────────────────────────────────────────
+  Widget _buildGymsList(BuildContext context, List<GymModel> gyms) {
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      itemCount: gyms.length,
+      itemBuilder: (context, index) {
+        final gym = gyms[index];
+        return GymCard(
+          gym: gym,
+          onFavoriteToggle: () {
+            ref.read(gymsProvider.notifier).toggleFavorite(gym.id);
+          },
+        );
+      },
+    );
+  }
+
+  // ── EMPTY STATE ────────────────────────────────────────────────────────────
+  Widget _buildEmptyState(BuildContext context, String area, bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.fitness_center_rounded,
+                size: 48,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? 'No gyms match "$_searchQuery"'
+                  : 'No gyms found in $area',
+              style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w800),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your search filters or discover top gyms in other areas like Nasr City, New Cairo, or Maadi.',
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                      _activeQuickFilter = 'All';
+                      _filters = GymFilterOptions();
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Reset Filters'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(locationProvider.notifier).state = 'All Areas';
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Explore All Areas'),
+                ),
+              ],
             ),
           ],
         ),
