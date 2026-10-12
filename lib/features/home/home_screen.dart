@@ -235,7 +235,7 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildHeroSection(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      height: 160,
+      height: 180,
       decoration: BoxDecoration(
         gradient: AppColors.heroGradient,
         borderRadius: BorderRadius.circular(20),
@@ -252,8 +252,8 @@ class HomeScreen extends ConsumerWidget {
               ),
               child: Image.network(
                 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
-                height: 160,
-                width: 160,
+                height: 180,
+                width: 170,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const SizedBox(),
               ),
@@ -273,7 +273,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,

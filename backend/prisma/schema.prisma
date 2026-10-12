@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  GYM_OWNER
+  ADMIN
+}
+
+model User {
+  id           String             @id @default(uuid())
+  email        String             @unique
+  password     String
+  fullName     String
+  phone        String?
+  avatarUrl    String?
+  role         String             @default("USER") // USER, GYM_OWNER, ADMIN
+  isActive     Boolean            @default(true)
+  gymId        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  refreshTokens RefreshToken[]
+  addresses     Address[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetOtp {
+  id        String   @id @default(uuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   // e.g. "Home", "Office"
+  street    String
+  city      String
+  building  String?
+  floor     String?
+  apartment String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Gym {
+  id           String   @id @default(uuid())
+  name         String
+  address      String
+  city         String
+  rating       Float    @default(5.0)
+  reviewCount  Int      @default(0)
+  distance     Float    @default(1.0)
+  imageUrl     String
+  logoUrl      String?
+  coverUrl     String?
+  isOpen       Boolean  @default(true)
+  openingHours String   @default("06:00 AM")
+  closingHours String   @default("11:00 PM")
+  phone        String?
+  about        String?
+  facilities   String   // JSON string array
+  ownerId      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

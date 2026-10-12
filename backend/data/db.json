@@ -1,0 +1,112 @@
+{
+  "users": [
+    {
+      "id": "user_consumer_001",
+      "email": "user@gymio.com",
+      "password": "$2b$10$Uvk4Nt1uhalesNVAaVX6uuiE.w5rjXpXPHINVU0iH3bN94w/v0c3m",
+      "fullName": "Mohamed Ahmed",
+      "phone": "+20 100 123 4567",
+      "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
+      "role": "USER",
+      "isActive": true,
+      "gymId": null,
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    },
+    {
+      "id": "user_owner_001",
+      "email": "owner@pulsefitness.com",
+      "password": "$2b$10$Uvk4Nt1uhalesNVAaVX6uuiE.w5rjXpXPHINVU0iH3bN94w/v0c3m",
+      "fullName": "Coach Tarek Mansour",
+      "phone": "+20 100 999 8888",
+      "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+      "role": "GYM_OWNER",
+      "isActive": true,
+      "gymId": "gym_pulse_001",
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    }
+  ],
+  "refreshTokens": [
+    {
+      "id": "id_g2kra697cmv5oh8z1",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyX2NvbnN1bWVyXzAwMSIsImVtYWlsIjoidXNlckBneW1pby5jb20iLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc5MTgzNTMwOCwiZXhwIjoxNzk0NDI3MzA4fQ.1w-MfpCFKGaqhKdC4XM6O62Ko0INhHkLBrx94GGzL-0",
+      "userId": "user_consumer_001",
+      "expiresAt": "2026-11-11T21:01:48.973Z",
+      "createdAt": "2026-10-12T20:01:48.973Z"
+    }
+  ],
+  "passwordResetOtps": [],
+  "addresses": [
+    {
+      "id": "addr_001",
+      "userId": "user_consumer_001",
+      "label": "Home",
+      "street": "15 Makram Ebeid St",
+      "city": "Nasr City, Cairo",
+      "building": "Bld 14",
+      "floor": "3rd Floor",
+      "apartment": "Apt 302",
+      "isDefault": true,
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    },
+    {
+      "id": "addr_002",
+      "userId": "user_consumer_001",
+      "label": "Office",
+      "street": "Smart Village, Building B12",
+      "city": "6th of October",
+      "building": "Tower 4",
+      "floor": "5th Floor",
+      "apartment": null,
+      "isDefault": false,
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    }
+  ],
+  "gyms": [
+    {
+      "id": "gym_pulse_001",
+      "name": "Pulse Fitness",
+      "address": "15 Makram Ebeid, Nasr City",
+      "city": "Nasr City",
+      "rating": 4.8,
+      "reviewCount": 342,
+      "distance": 1.2,
+      "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800",
+      "logoUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100",
+      "coverUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900",
+      "isOpen": true,
+      "openingHours": "06:00 AM",
+      "closingHours": "11:00 PM",
+      "phone": "+20 100 111 2222",
+      "about": "Pulse Fitness is Cairo's premier fitness destination, offering state-of-the-art equipment and expert coaching.",
+      "facilities": "[\"Olympic Weights\",\"Cardio Zone\",\"Swimming Pool\",\"Sauna\",\"Personal Training\",\"Group Classes\",\"Nutrition Bar\",\"Locker Rooms\"]",
+      "ownerId": "user_owner_001",
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    },
+    {
+      "id": "gym_iron_002",
+      "name": "Iron Forge Gym",
+      "address": "42 Road 9, Maadi",
+      "city": "Maadi",
+      "rating": 4.9,
+      "reviewCount": 512,
+      "distance": 2.8,
+      "imageUrl": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800",
+      "logoUrl": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=100",
+      "coverUrl": "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=900",
+      "isOpen": true,
+      "openingHours": "05:30 AM",
+      "closingHours": "12:00 AM",
+      "phone": "+20 100 222 3333",
+      "about": "Hardcore bodybuilding and powerlifting facility with competition-grade equipment and specialized coaching.",
+      "facilities": "[\"Eleiko Barbells\",\"Power Racks\",\"Cardio Floor\",\"Showers\",\"Supplement Store\"]",
+      "ownerId": null,
+      "createdAt": "2026-10-12T20:01:28.225Z",
+      "updatedAt": "2026-10-12T20:01:28.225Z"
+    }
+  ]
+}
